@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Clock">
+<title>Clock</title>
+
+<style>
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:-apple-system,BlinkMacSystemFont
+}
+body{
+  height:100vh;
+  overflow:hidden;
+}
+
+/* ---------- PAGE 1 : LOCK SCREEN ---------- */
+#lock{
+  position:absolute;
+  inset:0;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  background:
+    linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),
+    url("mountain.jpg") center/cover no-repeat;
+  backdrop-filter:blur(24px);
+  color:white;
+}
+
+.dots{
+  display:flex;
+  gap:14px;
+  margin-bottom:26px;
+}
+.dot{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.7);
+}
+.dot.filled{
+  background:white;
+}
+
+.keypad{
+  display:grid;
+  grid-template-columns:repeat(3,78px);
+  gap:18px;
+}
+.key{
+  width:78px;
+  height:78px;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:28px;
+}
+
+/* ---------- PAGE 2 : ALARM (DARK MODE) ---------- */
+#alarm{
+  position:absolute;
+  inset:0;
+  background:black;
+  display:none;
+  color:white;
+}
+
+/* NAV BAR */
+.nav{
+  height:52px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 16px;
+  border-bottom:1px solid #2c2c2e;
+}
+.nav span{
+  font-size:17px;
+}
+.nav .btn{
+  color:#ff9f0a;
+}
+.nav .title{
+  font-weight:600;
+}
+
+/* ALARM LIST */
+.list{
+  padding-bottom:80px;
+}
+.row{
+  height:88px;
+  padding:12px 16px;
+  border-bottom:1px solid #2c2c2e;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.time{
+  font-size:34px;
+  font-weight:300;
+}
+
+/* TOGGLE */
+.toggle{
+  width:51px;
+  height:31px;
+  border-radius:20px;
+  position:relative;
+  background:#3a3a3c;
+}
+.toggle::after{
+  content:"";
+  width:27px;
+  height:27px;
+  background:white;
+  border-radius:50%;
+  position:absolute;
+  left:2px;
+  top:2px;
+}
+.toggle.on{
+  background:#30d158;
+}
+.toggle.on::after{
+  left:22px;
+}
+
+/* TAB BAR */
+.tabbar{
+  position:absolute;
+  bottom:0;
+  left:0;
+  right:0;
+  height:70px;
+  background:black;
+  border-top:1px solid #2c2c2e;
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  font-size:22px;
+}
+.tabbar .active{
+  color:#ff9f0a;
+}
+</style>
+</head>
+
+<body>
+
+<!-- PAGE 1 : LOCK SCREEN -->
+<div id="lock">
+  <div class="dots" id="dots"></div>
+  <div class="keypad">
+    <div class="key">1</div><div class="key">2</div><div class="key">3</div>
+    <div class="key">4</div><div class="key">5</div><div class="key">6</div>
+    <div class="key">7</div><div class="key">8</div><div class="key">9</div>
+    <div></div><div class="key">0</div><div></div>
+  </div>
+</div>
+
+<!-- PAGE 2 : ALARM SCREEN -->
+<div id="alarm">
+  <div class="nav">
+    <span class="btn">Edit</span>
+    <span class="title">Alarm</span>
+    <span class="btn">+</span>
+  </div>
+
+  <div class="list" id="alarms"></div>
+
+  <div class="tabbar">
+    <div>🌍</div>
+    <div class="active">⏰</div>
+    <div>⏱</div>
+    <div>⏲</div>
+  </div>
+</div>
+
+<script>
+let pin = "";
+
+/* create dots */
+const dots = document.getElementById("dots");
+for(let i=0;i<4;i++){
+  const d = document.createElement("div");
+  d.className = "dot";
+  dots.appendChild(d);
+}
+
+/* keypad input */
+document.querySelectorAll(".key").forEach(k=>{
+  k.onclick = ()=>{
+    if(pin.length < 4){
+      pin += k.innerText;
+      dots.children[pin.length-1].classList.add("filled");
+      if(pin.length === 4) unlock();
+    }
+  }
+});
+
+/* unlock logic */
+function unlock(){
+  let h = parseInt(pin.slice(0,2));
+  let m = parseInt(pin.slice(2));
+
+  if(h > 12) h = h % 12 || 12;
+  if(m > 59) m = 59;
+
+  const forcedTime = `${h}:${m.toString().padStart(2,"0")}`;
+
+  setTimeout(()=>{
+    document.getElementById("lock").style.display = "none";
+    document.getElementById("alarm").style.display = "block";
+    renderAlarms(forcedTime);
+  },300);
+}
+
+/* render alarms (FORCED ON TOP) */
+function renderAlarms(forced){
+  const list = document.getElementById("alarms");
+  list.innerHTML = "";
+
+  // Forced alarm FIRST (ON)
+  addRow(forced, true);
+
+  // Other random alarms (OFF)
+  const random = ["6:40","7:15","9:05","11:30"];
+  random.forEach(t => addRow(t,false));
+}
+
+function addRow(time,on){
+  const row = document.createElement("div");
+  row.className = "row";
+  row.innerHTML = `
+    <div class="time">${time}</div>
+    <div class="toggle ${on ? "on" : ""}"></div>
+  `;
+  document.getElementById("alarms").appendChild(row);
+}
+
+/* hidden reset: tap Alarm title */
+document.querySelector(".title").onclick = ()=>location.reload();
+</script>
+
+</body>
+</html>
