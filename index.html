@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Lock Screen</title>
+    <style>
+        :root {
+            --ios-bg: #000;
+            --ios-grey: #1c1c1e;
+            --ios-text: #ffffff;
+            --ios-orange: #ff9f0a;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--ios-bg);
+            color: var(--ios-text);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        /* --- PAGE 1: LOCK SCREEN --- */
+        #lock-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            background: url('https://images.wallpapersden.com/image/download/ios-15-stock-gradient_bWdpZ26UmZqaraWkpJRmbmdlrWZlbWU.jpg') center/cover;
+            transition: transform 0.5s ease-in-out;
+            position: absolute;
+            width: 100%;
+            z-index: 2;
+        }
+
+        .passcode-header {
+            margin-top: 120px;
+            font-size: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .dots-container {
+            display: flex;
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border: 1.5px solid white;
+            border-radius: 50%;
+        }
+
+        .dot.filled {
+            background-color: white;
+        }
+
+        .numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px 25px;
+            margin-top: auto;
+            margin-bottom: 100px;
+        }
+
+        .key {
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .key:active {
+            background: rgba(255, 255, 255, 0.5);
+        }
+
+        /* --- PAGE 2: ALARM PAGE --- */
+        #alarm-page {
+            display: none;
+            height: 100%;
+            background-color: #000;
+            padding-top: 60px;
+            box-sizing: border-box;
+        }
+
+        .alarm-header {
+            padding: 0 20px;
+            font-size: 34px;
+            font-weight: bold;
+            margin-bottom: 20px;
+        }
+
+        .alarm-list {
+            border-top: 0.5px solid #333;
+        }
+
+        .alarm-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 0.5px solid #333;
+        }
+
+        .alarm-time {
+            font-size: 48px;
+            font-weight: 200;
+        }
+
+        .alarm-info {
+            font-size: 14px;
+            color: #8e8e93;
+        }
+
+        /* Toggle Switch Styling */
+        .toggle {
+            width: 51px;
+            height: 31px;
+            background: #333;
+            border-radius: 15.5px;
+            position: relative;
+        }
+
+        .toggle.on {
+            background: #34c759;
+        }
+
+        .toggle::after {
+            content: '';
+            position: absolute;
+            width: 27px;
+            height: 27px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: 0.2s;
+        }
+
+        .toggle.on::after {
+            transform: translateX(20px);
+        }
+
+        .off-alarm { opacity: 0.4; }
+    </style>
+</head>
+<body>
+
+    <div id="lock-screen">
+        <div class="passcode-header">Enter Passcode</div>
+        <div class="dots-container" id="dots">
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+
+        <div class="numpad">
+            <div class="key" onclick="press('1')">1</div>
+            <div class="key" onclick="press('2')">2</div>
+            <div class="key" onclick="press('3')">3</div>
+            <div class="key" onclick="press('4')">4</div>
+            <div class="key" onclick="press('5')">5</div>
+            <div class="key" onclick="press('6')">6</div>
+            <div class="key" onclick="press('7')">7</div>
+            <div class="key" onclick="press('8')">8</div>
+            <div class="key" onclick="press('9')">9</div>
+            <div style="grid-column: 2" class="key" onclick="press('0')">0</div>
+        </div>
+    </div>
+
+    <div id="alarm-page">
+        <div class="alarm-header">Alarm</div>
+        <div class="alarm-list" id="alarm-container">
+            <div class="alarm-item off-alarm">
+                <div><div class="alarm-time">07:00</div><div class="alarm-info">Alarm</div></div>
+                <div class="toggle"></div>
+            </div>
+            <div class="alarm-item off-alarm">
+                <div><div class="alarm-time">08:15</div><div class="alarm-info">Alarm</div></div>
+                <div class="toggle"></div>
+            </div>
+            <div class="alarm-item off-alarm">
+                <div><div class="alarm-time">09:30</div><div class="alarm-info">Alarm</div></div>
+                <div class="toggle"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let code = "";
+
+        function press(num) {
+            if (code.length < 4) {
+                code += num;
+                updateDots();
+                
+                // Haptic feedback simulation
+                if (window.navigator.vibrate) window.navigator.vibrate(10);
+
+                if (code.length === 4) {
+                    setTimeout(unlock, 300);
+                }
+            }
+        }
+
+        function updateDots() {
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, i) => {
+                if (i < code.length) dot.classList.add('filled');
+                else dot.classList.remove('filled');
+            });
+        }
+
+        function unlock() {
+            const timeStr = code.substring(0, 2) + ":" + code.substring(2, 4);
+            
+            // Create the new alarm HTML
+            const newAlarm = `
+                <div class="alarm-item">
+                    <div><div class="alarm-time">${timeStr}</div><div class="alarm-info">Alarm</div></div>
+                    <div class="toggle on"></div>
+                </div>
+            `;
+            
+            // Add to top of list
+            document.getElementById('alarm-container').insertAdjacentHTML('afterbegin', newAlarm);
+            
+            // Transition
+            document.getElementById('lock-screen').style.transform = "translateY(-100%)";
+            setTimeout(() => {
+                document.getElementById('lock-screen').style.display = "none";
+                document.getElementById('alarm-page').style.display = "block";
+            }, 500);
+        }
+    </script>
+</body>
+</html>
