@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Clock</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", sans-serif;
+            background: #000; overflow: hidden;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+        }
+
+        .screen {
+            width: 100%; height: 100%;
+            position: absolute; top: 0; left: 0;
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .hidden { display: none; }
+
+        /* Lock Screen */
+        .wallpaper {
+            position: absolute; width: 100%; height: 100%;
+            background: url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1000&q=80');
+            background-size: cover; background-position: center;
+            filter: blur(25px) brightness(0.8);
+            transform: scale(1.1);
+        }
+
+        .content {
+            position: relative; z-index: 10;
+            display: flex; flex-direction: column; align-items: center;
+            height: 100%; color: white;
+            justify-content: space-between;
+            padding: 50px 0 60px 0;
+            box-sizing: border-box;
+        }
+
+        .lock-header { text-align: center; margin-top: 20px; }
+        #lock-time { font-size: 85px; font-weight: 200; letter-spacing: -2px; margin: 0; }
+        #lock-date { font-size: 21px; font-weight: 400; margin-top: -5px; }
+
+        .passcode-section { text-align: center; width: 100%; margin-bottom: 20px; }
+        .instruction { font-size: 18px; margin-bottom: 25px; display: block; font-weight: 400; }
+
+        /* Pincode Dots */
+        .dots { display: flex; gap: 22px; justify-content: center; margin-bottom: 45px; }
+        .dot { width: 13px; height: 13px; border: 1.5px solid white; border-radius: 50%; }
+        .dot.filled { background: white; }
+
+        /* Keypad Centering & Layout */
+        .keypad {
+            display: grid; grid-template-columns: repeat(3, 78px);
+            gap: 15px 25px; justify-content: center;
+        }
+        .keypad button {
+            width: 78px; height: 78px; border-radius: 50%;
+            background: rgba(255,255,255,0.18); border: none;
+            color: white; font-size: 34px; backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            display: flex; align-items: center; justify-content: center;
+        }
+        .keypad button:active { background: rgba(255,255,255,0.4); }
+
+        /* Alarm Screen Styling */
+        #alarm-screen { background: #000; color: white; padding-top: 60px; }
+        .alarm-header {
+            display: flex; justify-content: space-between; padding: 0 20px;
+            color: #ff9f0a; font-size: 17px; align-items: center; margin-bottom: 20px;
+        }
+        .alarm-header .title { color: white; font-size: 34px; font-weight: bold; }
+        .alarm-list { border-top: 0.5px solid #222; }
+        .alarm-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 15px 20px; border-bottom: 0.5px solid #222;
+        }
+        .time { font-size: 52px; font-weight: 200; color: #8e8e93; }
+        .active-time { color: white; }
+        
+        /* iOS Toggle Switch */
+        .toggle-bg { width: 51px; height: 31px; border-radius: 15.5px; background: #34c759; position: relative; }
+        .toggle-off { background: #333; }
+        .toggle-knob { width: 27px; height: 27px; background: white; border-radius: 50%; position: absolute; right: 2px; top: 2px; }
+        .toggle-off .toggle-knob { left: 2px; right: auto; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-15px); }
+            40%, 80% { transform: translateX(15px); }
+        }
+        .shake { animation: shake 0.4s ease-in-out; }
+    </style>
+</head>
+<body>
+
+    <div id="lock-screen" class="screen">
+        <div class="wallpaper"></div>
+        <div class="content">
+            <div class="lock-header">
+                <h1 id="lock-time">12:00</h1>
+                <div id="lock-date">Monday, June 6</div>
+            </div>
+
+            <div class="passcode-section">
+                <span class="instruction">Enter Passcode</span>
+                <div class="dots" id="dot-container">
+                    <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                </div>
+                <div class="keypad">
+                    <button onclick="press('1')">1</button><button onclick="press('2')">2</button><button onclick="press('3')">3</button>
+                    <button onclick="press('4')">4</button><button onclick="press('5')">5</button><button onclick="press('6')">6</button>
+                    <button onclick="press('7')">7</button><button onclick="press('8')">8</button><button onclick="press('9')">9</button>
+                    <div style="width:78px"></div><button onclick="press('0')">0</button><div style="width:78px"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="alarm-screen" class="screen hidden">
+        <div class="alarm-header">
+            <span>Edit</span><span class="title">Alarm</span><span style="font-size:32px">+</span>
+        </div>
+        <div id="alarm-list">
+            <div class="alarm-item">
+                <div class="time">07:00</div>
+                <div class="toggle-bg toggle-off"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="alarm-item">
+                <div class="time">09:30</div>
+                <div class="toggle-bg toggle-off"><div class="toggle-knob"></div></div>
+            </div>
+            <div class="alarm-item">
+                <div class="time">10:15</div>
+                <div class="toggle-bg toggle-off"><div class="toggle-knob"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let input = "";
+        const dots = document.querySelectorAll('.dot');
+        const lockTime = document.getElementById('lock-time');
+        const lockDate = document.getElementById('lock-date');
+
+        // REAL TIME AND DATE LOGIC
+        function updateClock() {
+            const now = new Date();
+            
+            // 1. Format Time (12-hour format)
+            let hours = now.getHours();
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            hours = hours % 12;
+            hours = hours ? hours : 12; // if 0, make it 12
+            lockTime.innerText = `${hours}:${minutes}`;
+
+            // 2. Format Date (e.g., Monday, January 5)
+            const options = { weekday: 'long', month: 'long', day: 'numeric' };
+            lockDate.innerText = now.toLocaleDateString('en-US', options);
+        }
+        
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function press(num) {
+            if (input.length < 4) {
+                input += num;
+                dots[input.length - 1].classList.add('filled');
+                if (input.length === 4) setTimeout(validate, 250);
+            }
+        }
+
+        function validate() {
+            if (input === "0000") { // Hidden "fail" code
+                document.getElementById('dot-container').classList.add('shake');
+                setTimeout(() => {
+                    input = "";
+                    document.getElementById('dot-container').classList.remove('shake');
+                    dots.forEach(d => d.classList.remove('filled'));
+                }, 500);
+            } else {
+                unlock(input);
+            }
+        }
+
+        function unlock(code) {
+            const reversed = code.split('').reverse().join('');
+            const magicTime = reversed.substring(0, 2) + ":" + reversed.substring(2, 4);
+            
+            // Create the new "On" alarm
+            const magicAlarm = document.createElement('div');
+            magicAlarm.className = "alarm-item";
+            magicAlarm.innerHTML = `
+                <div class="time active-time">${magicTime}</div>
+                <div class="toggle-bg"><div class="toggle-knob"></div></div>
+            `;
+            
+            document.getElementById('alarm-list').prepend(magicAlarm);
+            
+            // Slide up transition
+            document.getElementById('lock-screen').style.transform = "translateY(-100%)";
+            setTimeout(() => {
+                document.getElementById('lock-screen').classList.add('hidden');
+                document.getElementById('alarm-screen').classList.remove('hidden');
+            }, 600);
+        }
+    </script>
+</body>
+</html>
